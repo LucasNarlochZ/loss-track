@@ -40,6 +40,10 @@ public class User {
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.EMPLOYEE;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -49,17 +53,27 @@ public class User {
     protected User() {}
 
     public User(Tenant tenant, String name, String email, String passwordHash, UserStatus status) {
+        this(tenant, name, email, passwordHash, status, UserRole.EMPLOYEE);
+    }
+
+    public User(Tenant tenant, String name, String email, String passwordHash, UserStatus status, UserRole role) {
         this.tenant = tenant;
         this.name = name;
         this.email = email;
         this.passwordHash = passwordHash;
         this.status = status;
+        this.role = role;
     }
 
     public void update(String name, String email, String passwordHash, UserStatus status) {
+        update(name, email, passwordHash, status, role);
+    }
+
+    public void update(String name, String email, String passwordHash, UserStatus status, UserRole role) {
         this.name = name;
         this.email = email;
         this.passwordHash = passwordHash;
         this.status = status;
+        this.role = role;
     }
 }

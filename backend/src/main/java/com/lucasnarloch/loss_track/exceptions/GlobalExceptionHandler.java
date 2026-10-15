@@ -1,5 +1,9 @@
 package com.lucasnarloch.loss_track.exceptions;
 
+import com.lucasnarloch.loss_track.domain.auth.exceptions.CnpjAlreadyRegistered;
+import com.lucasnarloch.loss_track.domain.auth.exceptions.InactiveAccount;
+import com.lucasnarloch.loss_track.domain.auth.exceptions.InvalidCredentials;
+import com.lucasnarloch.loss_track.domain.auth.exceptions.InvalidRefreshToken;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +37,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Map<String, String>> handleNotFoundException(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler({InvalidCredentials.class, InvalidRefreshToken.class})
+    public ResponseEntity<Map<String, String>> handleAuthenticationException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InactiveAccount.class)
+    public ResponseEntity<Map<String, String>> handleInactiveAccount(InactiveAccount ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CnpjAlreadyRegistered.class)
+    public ResponseEntity<Map<String, String>> handleConflict(CnpjAlreadyRegistered ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", ex.getMessage()));
     }
 }

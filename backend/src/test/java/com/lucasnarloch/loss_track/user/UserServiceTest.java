@@ -9,6 +9,7 @@ import com.lucasnarloch.loss_track.domain.user.User;
 import com.lucasnarloch.loss_track.domain.user.UserRepository;
 import com.lucasnarloch.loss_track.domain.user.UserService;
 import com.lucasnarloch.loss_track.domain.user.UserStatus;
+import com.lucasnarloch.loss_track.domain.user.UserRole;
 import com.lucasnarloch.loss_track.domain.user.dtos.UserRequestDTO;
 import com.lucasnarloch.loss_track.domain.user.dtos.UserResponseDTO;
 import com.lucasnarloch.loss_track.domain.user.exceptions.UserNotFound;
@@ -18,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,9 @@ class UserServiceTest {
     @Mock
     private TenantRepository tenantRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
@@ -47,22 +52,22 @@ class UserServiceTest {
         UUID tenantId = UUID.randomUUID();
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         UserRequestDTO request = new UserRequestDTO(
-                tenantId,
                 "Lucas Narloch",
                 "lucas@example.com",
                 "secret",
-                UserStatus.ACTIVE
+                UserStatus.ACTIVE,
+                UserRole.ADMIN
         );
 
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+        when(passwordEncoder.encode("secret")).thenReturn("hashed-secret");
         when(userRepository.save(any(User.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserResponseDTO response = userService.save(request);
+        UserResponseDTO response = userService.save(tenantId, request);
 
         assertEquals("Lucas Narloch", response.name());
         assertEquals("lucas@example.com", response.email());
-        assertEquals("secret", response.passwordHash());
         assertEquals(UserStatus.ACTIVE, response.status());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -72,7 +77,7 @@ class UserServiceTest {
         assertEquals(tenant, savedUser.getTenant());
         assertEquals("Lucas Narloch", savedUser.getName());
         assertEquals("lucas@example.com", savedUser.getEmail());
-        assertEquals("secret", savedUser.getPasswordHash());
+        assertEquals("hashed-secret", savedUser.getPasswordHash());
         assertEquals(UserStatus.ACTIVE, savedUser.getStatus());
     }
 
@@ -80,16 +85,16 @@ class UserServiceTest {
     void saveShouldThrowTenantNotFoundWhenTenantDoesNotExist() {
         UUID tenantId = UUID.randomUUID();
         UserRequestDTO request = new UserRequestDTO(
-                tenantId,
                 "Lucas Narloch",
                 "lucas@example.com",
                 "secret",
-                UserStatus.ACTIVE
+                UserStatus.ACTIVE,
+                UserRole.ADMIN
         );
 
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(TenantNotFound.class, () -> userService.save(request));
+        assertThrows(TenantNotFound.class, () -> userService.save(tenantId, request));
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -99,13 +104,13 @@ class UserServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         User user = new User(tenant, "Lucas Narloch", "lucas@example.com", "secret", UserStatus.ACTIVE);
 
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(user));
 
-        UserResponseDTO response = userService.findById(id);
+        UserResponseDTO response = userService.findById(tenantId, id);
 
         assertEquals("Lucas Narloch", response.name());
         assertEquals("lucas@example.com", response.email());
-        assertEquals("secret", response.passwordHash());
         assertEquals(UserStatus.ACTIVE, response.status());
     }
 
@@ -113,9 +118,10 @@ class UserServiceTest {
     void findByIdShouldThrowUserNotFoundWhenUserDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFound.class, () -> userService.findById(id));
+        assertThrows(UserNotFound.class, () -> userService.findById(tenantId, id));
     }
 
     @Test
@@ -124,9 +130,10 @@ class UserServiceTest {
         User firstUser = new User(tenant, "Lucas Narloch", "lucas@example.com", "secret", UserStatus.ACTIVE);
         User secondUser = new User(tenant, "Maria Silva", "maria@example.com", "password", UserStatus.INACTIVE);
 
-        when(userRepository.findAll()).thenReturn(List.of(firstUser, secondUser));
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findAllByTenantId(tenantId)).thenReturn(List.of(firstUser, secondUser));
 
-        List<UserResponseDTO> response = userService.findAll();
+        List<UserResponseDTO> response = userService.findAll(tenantId);
 
         assertEquals(2, response.size());
         assertEquals("Lucas Narloch", response.get(0).name());
@@ -140,25 +147,25 @@ class UserServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         User user = new User(tenant, "Lucas Narloch", "lucas@example.com", "secret", UserStatus.ACTIVE);
         UserRequestDTO request = new UserRequestDTO(
-                tenantId,
                 "Lucas Atualizado",
                 "lucas.atualizado@example.com",
                 "new-secret",
-                UserStatus.INACTIVE
+                UserStatus.INACTIVE,
+                UserRole.ADMIN
         );
 
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("new-secret")).thenReturn("new-secret-hash");
         when(userRepository.save(user)).thenReturn(user);
 
-        UserResponseDTO response = userService.update(id, request);
+        UserResponseDTO response = userService.update(tenantId, id, request);
 
         assertEquals("Lucas Atualizado", response.name());
         assertEquals("lucas.atualizado@example.com", response.email());
-        assertEquals("new-secret", response.passwordHash());
         assertEquals(UserStatus.INACTIVE, response.status());
         assertEquals("Lucas Atualizado", user.getName());
         assertEquals("lucas.atualizado@example.com", user.getEmail());
-        assertEquals("new-secret", user.getPasswordHash());
+        assertEquals("new-secret-hash", user.getPasswordHash());
 
         verify(userRepository).save(user);
     }
@@ -167,16 +174,17 @@ class UserServiceTest {
     void updateShouldThrowUserNotFoundWhenUserDoesNotExist() {
         UUID id = UUID.randomUUID();
         UserRequestDTO request = new UserRequestDTO(
-                UUID.randomUUID(),
                 "Lucas Atualizado",
                 "lucas.atualizado@example.com",
                 "new-secret",
-                UserStatus.INACTIVE
+                UserStatus.INACTIVE,
+                UserRole.ADMIN
         );
 
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFound.class, () -> userService.update(id, request));
+        assertThrows(UserNotFound.class, () -> userService.update(tenantId, id, request));
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -186,9 +194,10 @@ class UserServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         User user = new User(tenant, "Lucas Narloch", "lucas@example.com", "secret", UserStatus.ACTIVE);
 
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(user));
 
-        userService.delete(id);
+        userService.delete(tenantId, id);
 
         verify(userRepository).delete(user);
     }
@@ -197,9 +206,10 @@ class UserServiceTest {
     void deleteShouldThrowUserNotFoundWhenUserDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(userRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFound.class, () -> userService.delete(id));
+        assertThrows(UserNotFound.class, () -> userService.delete(tenantId, id));
         verify(userRepository, never()).delete(any(User.class));
     }
 }

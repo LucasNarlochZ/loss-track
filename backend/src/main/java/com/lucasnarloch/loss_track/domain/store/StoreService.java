@@ -21,8 +21,8 @@ public class StoreService {
         this.tenantRepository = tenantRepository;
     }
 
-    public StoreResponseDTO save(StoreRequestDTO storeRequestDto) {
-        Tenant tenant = findTenantById(storeRequestDto.tenantId());
+    public StoreResponseDTO save(UUID tenantId, StoreRequestDTO storeRequestDto) {
+        Tenant tenant = findTenantById(tenantId);
         Store store = new Store(
                 tenant,
                 storeRequestDto.name(),
@@ -35,18 +35,18 @@ public class StoreService {
         return new StoreResponseDTO(storeRepository.save(store));
     }
 
-    public StoreResponseDTO findById(UUID id) {
-        Store store = findEntityById(id);
+    public StoreResponseDTO findById(UUID tenantId, UUID id) {
+        Store store = findEntityById(tenantId, id);
         return new StoreResponseDTO(store);
     }
 
-    public List<StoreResponseDTO> findAll() {
-        List<Store> stores = storeRepository.findAll();
+    public List<StoreResponseDTO> findAll(UUID tenantId) {
+        List<Store> stores = storeRepository.findAllByTenantId(tenantId);
         return stores.stream().map(StoreResponseDTO::new).toList();
     }
 
-    public StoreResponseDTO update(UUID id, StoreRequestDTO storeRequestDto) {
-        Store store = findEntityById(id);
+    public StoreResponseDTO update(UUID tenantId, UUID id, StoreRequestDTO storeRequestDto) {
+        Store store = findEntityById(tenantId, id);
         store.update(
                 storeRequestDto.name(),
                 storeRequestDto.code(),
@@ -58,13 +58,13 @@ public class StoreService {
         return new StoreResponseDTO(storeRepository.save(store));
     }
 
-    public void delete(UUID id) {
-        Store store = findEntityById(id);
+    public void delete(UUID tenantId, UUID id) {
+        Store store = findEntityById(tenantId, id);
         storeRepository.delete(store);
     }
 
-    private Store findEntityById(UUID id) {
-        return storeRepository.findById(id).orElseThrow(StoreNotFound::new);
+    private Store findEntityById(UUID tenantId, UUID id) {
+        return storeRepository.findByIdAndTenantId(id, tenantId).orElseThrow(StoreNotFound::new);
     }
 
     private Tenant findTenantById(UUID id) {

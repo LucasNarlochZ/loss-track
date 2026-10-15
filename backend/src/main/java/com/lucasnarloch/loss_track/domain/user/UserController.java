@@ -4,6 +4,8 @@ import com.lucasnarloch.loss_track.domain.user.dtos.UserRequestDTO;
 import com.lucasnarloch.loss_track.domain.user.dtos.UserResponseDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,28 +22,32 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserResponseDTO save(@Valid @RequestBody UserRequestDTO userRequestDto) {
-        return userService.save(userRequestDto);
+    public UserResponseDTO save(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UserRequestDTO userRequestDto) {
+        return userService.save(tenantId(jwt), userRequestDto);
     }
 
     @GetMapping("/{id}")
-    public UserResponseDTO findById(@PathVariable UUID id) {
-        return userService.findById(id);
+    public UserResponseDTO findById(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return userService.findById(tenantId(jwt), id);
     }
 
     @GetMapping
-    public List<UserResponseDTO> findAll() {
-        return userService.findAll();
+    public List<UserResponseDTO> findAll(@AuthenticationPrincipal Jwt jwt) {
+        return userService.findAll(tenantId(jwt));
     }
 
     @PutMapping("/{id}")
-    public UserResponseDTO update(@PathVariable UUID id, @Valid @RequestBody UserRequestDTO userRequestDto) {
-        return userService.update(id, userRequestDto);
+    public UserResponseDTO update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody UserRequestDTO userRequestDto) {
+        return userService.update(tenantId(jwt), id, userRequestDto);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        userService.delete(id);
+    public void delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        userService.delete(tenantId(jwt), id);
+    }
+
+    private UUID tenantId(Jwt jwt) {
+        return UUID.fromString(jwt.getClaimAsString("tenant_id"));
     }
 }

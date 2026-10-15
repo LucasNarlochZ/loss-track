@@ -38,6 +38,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - JWT_SECRET=bG9zcy10cmFjay1kZXYtc2VjcmV0LWtleS0zMi1ieXRlcy1taW4=
+      - COOKIE_SECURE=false
     depends_on:
       postgres:
         condition: service_healthy

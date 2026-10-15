@@ -4,10 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
-import java.util.UUID;
-
 public record ProductRequestDTO(
-        @NotNull UUID tenantId,
         @NotBlank String name,
         @NotBlank String sku,
         @NotBlank String barcode,

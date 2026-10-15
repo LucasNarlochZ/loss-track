@@ -47,7 +47,6 @@ class StoreServiceTest {
         UUID tenantId = UUID.randomUUID();
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         StoreRequestDTO request = new StoreRequestDTO(
-                tenantId,
                 "Loja Centro",
                 "CENTRO",
                 "11222333000144",
@@ -60,7 +59,7 @@ class StoreServiceTest {
         when(storeRepository.save(any(Store.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        StoreResponseDTO response = storeService.save(request);
+        StoreResponseDTO response = storeService.save(tenantId, request);
 
         assertEquals("Loja Centro", response.name());
         assertEquals("CENTRO", response.code());
@@ -87,7 +86,6 @@ class StoreServiceTest {
     void saveShouldThrowTenantNotFoundWhenTenantDoesNotExist() {
         UUID tenantId = UUID.randomUUID();
         StoreRequestDTO request = new StoreRequestDTO(
-                tenantId,
                 "Loja Centro",
                 "CENTRO",
                 "11222333000144",
@@ -98,7 +96,7 @@ class StoreServiceTest {
 
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(TenantNotFound.class, () -> storeService.save(request));
+        assertThrows(TenantNotFound.class, () -> storeService.save(tenantId, request));
         verify(storeRepository, never()).save(any(Store.class));
     }
 
@@ -108,9 +106,10 @@ class StoreServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         Store store = new Store(tenant, "Loja Centro", "CENTRO", "11222333000144", "Rua Principal, 100", "Curitiba", "PR");
 
-        when(storeRepository.findById(id)).thenReturn(Optional.of(store));
+        UUID tenantId = UUID.randomUUID();
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(store));
 
-        StoreResponseDTO response = storeService.findById(id);
+        StoreResponseDTO response = storeService.findById(tenantId, id);
 
         assertEquals("Loja Centro", response.name());
         assertEquals("CENTRO", response.code());
@@ -122,9 +121,10 @@ class StoreServiceTest {
     void findByIdShouldThrowStoreNotFoundWhenStoreDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(storeRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(StoreNotFound.class, () -> storeService.findById(id));
+        assertThrows(StoreNotFound.class, () -> storeService.findById(tenantId, id));
     }
 
     @Test
@@ -133,9 +133,10 @@ class StoreServiceTest {
         Store firstStore = new Store(tenant, "Loja Centro", "CENTRO", "11222333000144", "Rua Principal, 100", "Curitiba", "PR");
         Store secondStore = new Store(tenant, "Loja Bairro", "BAIRRO", "55666777000188", "Rua Secundaria, 200", "Curitiba", "PR");
 
-        when(storeRepository.findAll()).thenReturn(List.of(firstStore, secondStore));
+        UUID tenantId = UUID.randomUUID();
+        when(storeRepository.findAllByTenantId(tenantId)).thenReturn(List.of(firstStore, secondStore));
 
-        List<StoreResponseDTO> response = storeService.findAll();
+        List<StoreResponseDTO> response = storeService.findAll(tenantId);
 
         assertEquals(2, response.size());
         assertEquals("Loja Centro", response.get(0).name());
@@ -149,7 +150,6 @@ class StoreServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         Store store = new Store(tenant, "Loja Centro", "CENTRO", "11222333000144", "Rua Principal, 100", "Curitiba", "PR");
         StoreRequestDTO request = new StoreRequestDTO(
-                tenantId,
                 "Loja Atualizada",
                 "ATUAL",
                 "99888777000166",
@@ -158,10 +158,10 @@ class StoreServiceTest {
                 "SP"
         );
 
-        when(storeRepository.findById(id)).thenReturn(Optional.of(store));
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(store));
         when(storeRepository.save(store)).thenReturn(store);
 
-        StoreResponseDTO response = storeService.update(id, request);
+        StoreResponseDTO response = storeService.update(tenantId, id, request);
 
         assertEquals("Loja Atualizada", response.name());
         assertEquals("ATUAL", response.code());
@@ -179,8 +179,8 @@ class StoreServiceTest {
     @Test
     void updateShouldThrowStoreNotFoundWhenStoreDoesNotExist() {
         UUID id = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
         StoreRequestDTO request = new StoreRequestDTO(
-                UUID.randomUUID(),
                 "Loja Atualizada",
                 "ATUAL",
                 "99888777000166",
@@ -189,9 +189,9 @@ class StoreServiceTest {
                 "SP"
         );
 
-        when(storeRepository.findById(id)).thenReturn(Optional.empty());
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(StoreNotFound.class, () -> storeService.update(id, request));
+        assertThrows(StoreNotFound.class, () -> storeService.update(tenantId, id, request));
         verify(storeRepository, never()).save(any(Store.class));
     }
 
@@ -201,9 +201,10 @@ class StoreServiceTest {
         Tenant tenant = new Tenant("Empresa LTDA", "12345678000199", TenantPlan.PRO, TenantStatus.ACTIVE);
         Store store = new Store(tenant, "Loja Centro", "CENTRO", "11222333000144", "Rua Principal, 100", "Curitiba", "PR");
 
-        when(storeRepository.findById(id)).thenReturn(Optional.of(store));
+        UUID tenantId = UUID.randomUUID();
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(store));
 
-        storeService.delete(id);
+        storeService.delete(tenantId, id);
 
         verify(storeRepository).delete(store);
     }
@@ -212,9 +213,10 @@ class StoreServiceTest {
     void deleteShouldThrowStoreNotFoundWhenStoreDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(storeRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(storeRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(StoreNotFound.class, () -> storeService.delete(id));
+        assertThrows(StoreNotFound.class, () -> storeService.delete(tenantId, id));
         verify(storeRepository, never()).delete(any(Store.class));
     }
 }

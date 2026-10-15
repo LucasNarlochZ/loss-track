@@ -44,13 +44,13 @@ class ProductServiceTest {
     void saveShouldCreateProductAndReturnResponseDto() {
         UUID tenantId = UUID.randomUUID();
         Tenant tenant = new Tenant("Empresa", "12345678000190", TenantPlan.BASIC);
-        ProductRequestDTO request = new ProductRequestDTO(tenantId, "Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
+        ProductRequestDTO request = new ProductRequestDTO("Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
 
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
         when(productRepository.save(any(Product.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ProductResponseDTO response = productService.save(request);
+        ProductResponseDTO response = productService.save(tenantId, request);
 
         assertEquals("Notebook", response.name());
         assertEquals("NOTE-001", response.sku());
@@ -78,9 +78,10 @@ class ProductServiceTest {
         Tenant tenant = new Tenant("Empresa", "12345678000190", TenantPlan.BASIC);
         Product product = new Product(tenant, "Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
 
-        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        UUID tenantId = UUID.randomUUID();
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(product));
 
-        ProductResponseDTO response = productService.findById(id);
+        ProductResponseDTO response = productService.findById(tenantId, id);
 
         assertEquals("Notebook", response.name());
         assertEquals("NOTE-001", response.sku());
@@ -94,9 +95,10 @@ class ProductServiceTest {
     void findByIdShouldThrowProductNotFoundWhenProductDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(productRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(ProductNotFound.class, () -> productService.findById(id));
+        assertThrows(ProductNotFound.class, () -> productService.findById(tenantId, id));
     }
 
     @Test
@@ -105,9 +107,10 @@ class ProductServiceTest {
         Product firstProduct = new Product(tenant, "Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
         Product secondProduct = new Product(tenant, "Cadeira", "CAD-001", "654321", "Moveis", "UN", BigDecimal.ONE);
 
-        when(productRepository.findAll()).thenReturn(List.of(firstProduct, secondProduct));
+        UUID tenantId = UUID.randomUUID();
+        when(productRepository.findAllByTenantId(tenantId)).thenReturn(List.of(firstProduct, secondProduct));
 
-        List<ProductResponseDTO> response = productService.findAll();
+        List<ProductResponseDTO> response = productService.findAll(tenantId);
 
         assertEquals(2, response.size());
         assertEquals("Notebook", response.get(0).name());
@@ -120,12 +123,12 @@ class ProductServiceTest {
         UUID tenantId = UUID.randomUUID();
         Tenant tenant = new Tenant("Empresa", "12345678000190", TenantPlan.BASIC);
         Product product = new Product(tenant, "Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
-        ProductRequestDTO request = new ProductRequestDTO(tenantId, "Monitor", "MON-001", "789012", "Informatica", "UN", BigDecimal.ONE);
+        ProductRequestDTO request = new ProductRequestDTO("Monitor", "MON-001", "789012", "Informatica", "UN", BigDecimal.ONE);
 
-        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(product));
         when(productRepository.save(product)).thenReturn(product);
 
-        ProductResponseDTO response = productService.update(id, request);
+        ProductResponseDTO response = productService.update(tenantId, id, request);
 
         assertEquals("Monitor", response.name());
         assertEquals("MON-001", response.sku());
@@ -146,11 +149,12 @@ class ProductServiceTest {
     @Test
     void updateShouldThrowProductNotFoundWhenProductDoesNotExist() {
         UUID id = UUID.randomUUID();
-        ProductRequestDTO request = new ProductRequestDTO(UUID.randomUUID(), "Monitor", "MON-001", "789012", "Informatica", "UN", BigDecimal.ONE);
+        UUID tenantId = UUID.randomUUID();
+        ProductRequestDTO request = new ProductRequestDTO("Monitor", "MON-001", "789012", "Informatica", "UN", BigDecimal.ONE);
 
-        when(productRepository.findById(id)).thenReturn(Optional.empty());
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(ProductNotFound.class, () -> productService.update(id, request));
+        assertThrows(ProductNotFound.class, () -> productService.update(tenantId, id, request));
         verify(productRepository, never()).save(any(Product.class));
     }
 
@@ -160,9 +164,10 @@ class ProductServiceTest {
         Tenant tenant = new Tenant("Empresa", "12345678000190", TenantPlan.BASIC);
         Product product = new Product(tenant, "Notebook", "NOTE-001", "123456", "Eletronicos", "UN", BigDecimal.TEN);
 
-        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        UUID tenantId = UUID.randomUUID();
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.of(product));
 
-        productService.delete(id);
+        productService.delete(tenantId, id);
 
         verify(productRepository).delete(product);
     }
@@ -171,9 +176,10 @@ class ProductServiceTest {
     void deleteShouldThrowProductNotFoundWhenProductDoesNotExist() {
         UUID id = UUID.randomUUID();
 
-        when(productRepository.findById(id)).thenReturn(Optional.empty());
+        UUID tenantId = UUID.randomUUID();
+        when(productRepository.findByIdAndTenantId(id, tenantId)).thenReturn(Optional.empty());
 
-        assertThrows(ProductNotFound.class, () -> productService.delete(id));
+        assertThrows(ProductNotFound.class, () -> productService.delete(tenantId, id));
         verify(productRepository, never()).delete(any(Product.class));
     }
 }

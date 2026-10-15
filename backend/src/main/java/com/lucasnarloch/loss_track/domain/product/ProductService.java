@@ -21,8 +21,8 @@ public class ProductService {
         this.tenantRepository = tenantRepository;
     }
 
-    public ProductResponseDTO save(ProductRequestDTO productRequestDto) {
-        Tenant tenant = findTenantById(productRequestDto.tenantId());
+    public ProductResponseDTO save(UUID tenantId, ProductRequestDTO productRequestDto) {
+        Tenant tenant = findTenantById(tenantId);
         Product product = new Product(
                 tenant,
                 productRequestDto.name(),
@@ -35,18 +35,18 @@ public class ProductService {
         return new ProductResponseDTO(productRepository.save(product));
     }
 
-    public ProductResponseDTO findById(UUID id) {
-        Product product = findEntityById(id);
+    public ProductResponseDTO findById(UUID tenantId, UUID id) {
+        Product product = findEntityById(tenantId, id);
         return new ProductResponseDTO(product);
     }
 
-    public List<ProductResponseDTO> findAll() {
-        List<Product> products = productRepository.findAll();
+    public List<ProductResponseDTO> findAll(UUID tenantId) {
+        List<Product> products = productRepository.findAllByTenantId(tenantId);
         return products.stream().map(ProductResponseDTO::new).toList();
     }
 
-    public ProductResponseDTO update(UUID id, ProductRequestDTO productRequestDto) {
-        Product product = findEntityById(id);
+    public ProductResponseDTO update(UUID tenantId, UUID id, ProductRequestDTO productRequestDto) {
+        Product product = findEntityById(tenantId, id);
         product.update(
                 productRequestDto.name(),
                 productRequestDto.sku(),
@@ -58,13 +58,13 @@ public class ProductService {
         return new ProductResponseDTO(productRepository.save(product));
     }
 
-    public void delete(UUID id) {
-        Product product = findEntityById(id);
+    public void delete(UUID tenantId, UUID id) {
+        Product product = findEntityById(tenantId, id);
         productRepository.delete(product);
     }
 
-    private Product findEntityById(UUID id) {
-        return productRepository.findById(id).orElseThrow(ProductNotFound::new);
+    private Product findEntityById(UUID tenantId, UUID id) {
+        return productRepository.findByIdAndTenantId(id, tenantId).orElseThrow(ProductNotFound::new);
     }
 
     private Tenant findTenantById(UUID id) {

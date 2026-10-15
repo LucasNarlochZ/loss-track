@@ -3,10 +3,10 @@ package com.lucasnarloch.loss_track.domain.tenant;
 import com.lucasnarloch.loss_track.domain.tenant.dtos.TenantRequestDTO;
 import com.lucasnarloch.loss_track.domain.tenant.dtos.TenantResponseDTO;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,30 +18,20 @@ public class TenantController {
         this.tenantService = tenantService;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public TenantResponseDTO save(@Valid @RequestBody TenantRequestDTO tenantRequestDto) {
-        return tenantService.save(tenantRequestDto);
+    @GetMapping("/me")
+    public TenantResponseDTO findCurrent(@AuthenticationPrincipal Jwt jwt) {
+        return tenantService.findById(tenantId(jwt));
     }
 
-    @GetMapping("/{id}")
-    public TenantResponseDTO findById(@PathVariable UUID id) {
-        return tenantService.findById(id);
+    @PutMapping("/me")
+    public TenantResponseDTO updateCurrent(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody TenantRequestDTO tenantRequestDto
+    ) {
+        return tenantService.update(tenantId(jwt), tenantRequestDto);
     }
 
-    @GetMapping
-    public List<TenantResponseDTO> findAll() {
-        return tenantService.findAll();
-    }
-
-    @PutMapping("/{id}")
-    public TenantResponseDTO update(@PathVariable UUID id, @Valid @RequestBody TenantRequestDTO tenantRequestDto) {
-        return tenantService.update(id, tenantRequestDto);
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        tenantService.delete(id);
+    private UUID tenantId(Jwt jwt) {
+        return UUID.fromString(jwt.getClaimAsString("tenant_id"));
     }
 }
