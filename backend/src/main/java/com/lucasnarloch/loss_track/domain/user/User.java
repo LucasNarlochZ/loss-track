@@ -1,5 +1,6 @@
 package com.lucasnarloch.loss_track.domain.user;
 
+import com.lucasnarloch.loss_track.domain.store.Store;
 import com.lucasnarloch.loss_track.domain.tenant.Tenant;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -43,6 +44,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role = UserRole.EMPLOYEE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="store_id")
+    private Store store;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
