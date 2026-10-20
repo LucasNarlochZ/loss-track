@@ -81,4 +81,8 @@ public class User {
         this.status = status;
         this.role = role;
     }
+
+    public void assignToStore(Store store) {
+        this.store = store;
+    }
 }

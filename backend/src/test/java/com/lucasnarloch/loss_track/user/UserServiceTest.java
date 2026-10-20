@@ -1,5 +1,7 @@
 package com.lucasnarloch.loss_track.user;
 
+import com.lucasnarloch.loss_track.domain.store.Store;
+import com.lucasnarloch.loss_track.domain.store.StoreRepository;
 import com.lucasnarloch.loss_track.domain.tenant.Tenant;
 import com.lucasnarloch.loss_track.domain.tenant.TenantPlan;
 import com.lucasnarloch.loss_track.domain.tenant.TenantRepository;
@@ -25,18 +27,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private StoreRepository storeRepository;
 
     @Mock
     private TenantRepository tenantRepository;
@@ -46,6 +48,10 @@ class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
+
+    private final UUID tenantId = UUID.randomUUID();
+    private final UUID userId = UUID.randomUUID();
+    private final UUID storeId = UUID.randomUUID();
 
     @Test
     void saveShouldCreateUserAndReturnResponseDto() {
@@ -211,5 +217,29 @@ class UserServiceTest {
 
         assertThrows(UserNotFound.class, () -> userService.delete(tenantId, id));
         verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @Test
+    void assignsUserToStore() {
+        Tenant tenant = mock(Tenant.class);
+
+        User user = new User(
+                tenant,
+                "Lucas",
+                "lucas@example.com",
+                "hashed-password",
+                UserStatus.ACTIVE,
+                UserRole.EMPLOYEE
+        );
+        Store store = mock(Store.class);
+        when(userRepository.findByIdAndTenantId(userId, tenantId))
+                .thenReturn(Optional.of(user));
+        when(storeRepository.findByIdAndTenantId(storeId, tenantId))
+                .thenReturn(Optional.of(store));
+
+        userService.assignToStore(tenantId, userId, storeId);
+
+        assertSame(store, user.getStore());
+
     }
 }

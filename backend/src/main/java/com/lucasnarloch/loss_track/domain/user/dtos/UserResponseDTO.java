@@ -1,5 +1,6 @@
 package com.lucasnarloch.loss_track.domain.user.dtos;
 
+import com.lucasnarloch.loss_track.domain.store.Store;
 import com.lucasnarloch.loss_track.domain.user.User;
 import com.lucasnarloch.loss_track.domain.user.UserStatus;
 import com.lucasnarloch.loss_track.domain.user.UserRole;
@@ -14,6 +15,7 @@ public record UserResponseDTO(
         String email,
         UserStatus status,
         UserRole role,
+        Store assignedStore,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -25,6 +27,7 @@ public record UserResponseDTO(
                 user.getEmail(),
                 user.getStatus(),
                 user.getRole(),
+                user.getStore(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
